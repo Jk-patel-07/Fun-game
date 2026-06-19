@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maths Marks Predictor</title>
+  <meta name="description" content="Predict your maths result and get a funny reaction! Share with your friends on WhatsApp.">
+  
+  <!-- Google Fonts for modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* CSS Variables for Dark/Light Themes and Design Tokens */
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --accent-color: #ec4899;
+      --accent-glow: rgba(236, 72, 153, 0.5);
+      --slider-track: rgba(255, 255, 255, 0.1);
+      --input-bg: rgba(255, 255, 255, 0.07);
+      --font-family: 'Outfit', sans-serif;
+      --transition-speed: 0.3s;
+    }
+
+    [data-theme="light"] {
+      --bg-gradient: linear-gradient(135deg, #f0f4ff, #e0e7ff, #fae8ff);
+      --card-bg: rgba(255, 255, 255, 0.7);
+      --card-border: rgba(255, 255, 255, 0.5);
+      --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --accent-color: #db2777;
+      --accent-glow: rgba(219, 39, 119, 0.3);
+      --slider-track: rgba(15, 23, 42, 0.1);
+      --input-bg: rgba(15, 23, 42, 0.05);
+    }
+
+    /* Base Styles & Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      overflow-x: hidden;
+      transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+      position: relative;
+    }
+
+    /* Background blobs for a modern, fluid visual appeal */
+    .blob {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      filter: blur(80px);
+      z-index: 0;
+      opacity: 0.5;
+      pointer-events: none;
+      animation: float-blob 20s infinite alternate ease-in-out;
+    }
+
+    .blob-1 {
+      background: #c084fc;
+      top: 10%;
+      left: 10%;
+    }
+
+    .blob-2 {
+      background: #f472b6;
+      bottom: 10%;
+      right: 10%;
+      animation-delay: -10s;
+    }
+
+    @keyframes float-blob {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(50px, 80px) scale(1.2); }
+    }
+
+    /* Container setup for glassmorphism */
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      box-shadow: var(--card-shadow);
+      padding: 2.5rem 2rem;
+      z-index: 10;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                  background var(--transition-speed) ease, 
+                  border var(--transition-speed) ease;
+    }
+
+    .container:hover {
+      transform: translateY(-5px);
+    }
+
+    /* Top actions (Theme & Sound Toggle) */
+    .header-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .theme-toggle-btn {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 1.5rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s ease, transform 0.2s ease;
+      background: var(--input-bg);
+    }
+
+    .theme-toggle-btn:hover {
+      transform: scale(1.1) rotate(15deg);
+    }
+
+    .theme-toggle-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.5px;
+      background: linear-gradient(45deg, var(--text-primary), var(--accent-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .question {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Visual Reaction Emojis */
+    .emoji-preview {
+      font-size: 5rem;
+      margin: 1rem 0;
+      display: inline-block;
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: pulse-emoji 3s infinite ease-in-out;
+    }
+
+    @keyframes pulse-emoji {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    /* Inputs & Form styling */
+    .marks-input-wrapper {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .marks-input {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      font-size: 2rem;
+      font-weight: 800;
+      text-align: center;
+      border-radius: 16px;
+      border: 2px solid var(--card-border);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      outline: none;
+      font-family: var(--font-family);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+    }
+
+    .marks-input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    /* Chrome, Safari, Edge, Opera: Remove spin buttons */
+    .marks-input::-webkit-outer-spin-button,
+    .marks-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Firefox: Remove spin buttons */
+    .marks-input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    /* Sliders */
+    .slider-container {
+      margin-bottom: 2.5rem;
+    }
+
+    .marks-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--slider-track);
+      outline: none;
+      margin: 1rem 0;
+      cursor: pointer;
+    }
+
+    .marks-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--accent-glow);
+      transition: transform 0.1s ease;
+    }
+
+    .marks-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .marks-slider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 10px var(--accent-glow);
+      transition: transform 0.1s ease;
+    }
+
+    .marks-slider::-moz-range-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Buttons */
+    .btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 1.1rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-family);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      color: white;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    /* Ripple Effect */
+    .ripple {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple-animation 0.6s linear;
+      pointer-events: none;
+    }
+
+    @keyframes ripple-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* Result Panel Styling */
+    .result-panel {
+      display: none;
+      opacity: 0;
+      transform: scale(0.95) translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .result-panel.active {
+      display: block;
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+
+    .result-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    [data-theme="light"] .result-card {
+      background: rgba(15, 23, 42, 0.03);
+    }
+
+
+    .result-main {
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .result-funny {
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    .action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .btn-whatsapp {
+      background: #25d366;
+      color: white;
+      box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+    }
+
+    .btn-whatsapp:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
+    }
+
+    .btn-secondary {
+      background: var(--input-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    [data-theme="light"] .btn-secondary:hover {
+      background: rgba(15, 23, 42, 0.08);
+    }
+
+    /* Screen Transitions and Main View */
+    .name-panel, .input-panel {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .name-panel.hidden, .input-panel.hidden {
+      display: none;
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* Shake animation for invalid input */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    .shake {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    /* Footer branding */
+    .footer {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      opacity: 0.7;
+    }
+
+    /* Message Card Glassmorphic Styling */
+    .message-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-top: 1.25rem;
+      text-align: left;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    [data-theme="light"] .message-card {
+      background: rgba(15, 23, 42, 0.02);
+    }
+    
+    .message-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    .message-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .name-input-wrapper {
+      margin-bottom: 0.75rem;
+    }
+
+    .message-name-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      border-radius: 12px;
+      border: 2px solid var(--card-border);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      outline: none;
+      font-family: var(--font-family);
+      transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    }
+
+    .message-name-input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .textarea-wrapper {
+      position: relative;
+      margin-bottom: 0.75rem;
+    }
+    
+    .message-textarea {
+      width: 100%;
+      padding: 0.75rem 1rem 1.75rem 1rem;
+      font-size: 0.95rem;
+      border-radius: 12px;
+      border: 2px solid var(--card-border);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      outline: none;
+      font-family: var(--font-family);
+      resize: none;
+      transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+      min-height: 90px;
+      line-height: 1.4;
+    }
+    
+    .message-textarea:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    
+    .char-counter {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    
+    .message-note {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 0.75rem;
+      opacity: 0.8;
+    }
+    
+    /* Success State Styling */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 0.5rem 0;
+    }
+    
+    .success-state.active {
+      display: block;
+      animation: fade-in 0.5s ease forwards;
+    }
+    
+    .success-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      display: inline-block;
+      animation: scale-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .success-text {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: var(--text-primary);
+    }
+    
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes scale-up {
+      from { transform: scale(0); }
+      to { transform: scale(1); }
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--accent-color);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      box-shadow: 0 8px 24px var(--accent-glow);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1000;
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .container {
+        padding: 2rem 1.5rem;
+      }
+      h1 {
+        font-size: 1.85rem;
+      }
+      .emoji-preview {
+        font-size: 4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Animated mesh blobs -->
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">✅ Thanks! Tumhara message Jay tak pahunch gaya.</div>
+
+  <div class="container" id="app-container">
+    
+    <!-- Header with Theme Toggle -->
+    <div class="header-actions">
+      <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle Theme" title="Toggle Dark/Light Mode">
+        ☀️
+      </button>
+    </div>
+
+    <!-- Website Branding -->
+    <h1>Maths</h1>
+    <p class="subtitle">EGD ka paper aa raha hai, pata hi nahi? 😭</p>
+
+    <!-- NAME PANEL (Step 1) -->
+    <div class="name-panel" id="name-panel">
+      <div class="emoji-preview">👋</div>
+      <div class="question">Pehle apna naam batao! 👇</div>
+      <div class="name-input-wrapper">
+        <input 
+          type="text" 
+          id="user-name-input" 
+          class="message-name-input" 
+          placeholder="Apna naam likho 😊" 
+          maxlength="50"
+          autocomplete="off"
+        >
+      </div>
+      <button class="btn btn-primary" id="btn-proceed-name">
+        Proceed 🚀
+      </button>
+    </div>
+
+    <!-- INPUT PANEL (Step 2 - hidden initially) -->
+    <div class="input-panel hidden" id="input-panel">
+      <!-- Changing emoji based on slider / input values -->
+      <div class="emoji-preview" id="emoji-preview">🧐</div>
+
+      <div class="question">Maths me kitne aayenge?</div>
+
+      <div class="marks-input-wrapper">
+        <input 
+          type="number" 
+          id="marks-input" 
+          class="marks-input" 
+          placeholder="0 - 100" 
+          min="0" 
+          max="100" 
+          value="50"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="slider-container">
+        <input 
+          type="range" 
+          id="marks-slider" 
+          class="marks-slider" 
+          min="0" 
+          max="100" 
+          value="50"
+        >
+      </div>
+
+      <button class="btn btn-primary" id="btn-predict">
+        Check Result 🔮
+      </button>
+    </div>
+
+    <!-- RESULT PANEL (Step 3) -->
+    <div class="result-panel" id="result-panel">
+      <div class="emoji-preview" id="result-emoji">🏆</div>
+
+      <div class="result-card">
+        <div class="result-main" id="result-main">Topper ho kya? 🏆</div>
+        <div class="result-funny" id="result-funny">"Hey Prabhu! Aap devta hain! 🛐"</div>
+      </div>
+
+      <!-- Modern Glassmorphism Message Card for Jay -->
+      <div class="message-card" id="message-card">
+        <!-- Message Entry State -->
+        <div class="message-form-state" id="message-form-state">
+          <div class="message-card-title">💬 Message for Jay</div>
+          <div class="textarea-wrapper">
+            <textarea 
+              id="jay-message" 
+              class="message-textarea" 
+              placeholder="Kuch Jay ko batana chahte ho? 😊" 
+              maxlength="300"
+              rows="3"
+            ></textarea>
+            <div class="char-counter" id="char-counter">0 / 300</div>
+          </div>
+
+          <button class="btn btn-primary" id="btn-send-message">
+            📨 Send Message to Jay
+          </button>
+          <div class="message-note">Your message will be seen by Jay 😊</div>
+        </div>
+
+        <!-- Success Animation & Reset State -->
+        <div class="success-state" id="success-state">
+          <div class="success-icon">🎉</div>
+          <div class="success-text">✅ Thanks! Tumhara message Jay tak pahunch gaya.</div>
+          <button class="btn btn-secondary" id="btn-predict-again">
+            Predict Again 🔄
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      Designed with ❤️ &bull; 100% Fun Predicted
+    </div>
+
+  </div>
+
+  <script>
+    // --- Dark/Light Mode Management ---
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    
+    // --- Click Sound Synthesis Engine ---
+    let audioCtx = null;
+    let toastTimeout = null;
+
+    function playClickSound() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } catch (err) {
+        console.warn("Click sound failed:", err);
+      }
+    }
+    
+    // Auto-detect system preference or load from localStorage
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    let currentTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    updateThemeToggleUI();
+
+    themeToggleBtn.addEventListener('click', () => {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('theme', currentTheme);
+      updateThemeToggleUI();
+    });
+
+    function updateThemeToggleUI() {
+      if (currentTheme === 'dark') {
+        themeToggleBtn.innerHTML = '☀️';
+        themeToggleBtn.setAttribute('title', 'Switch to Light Mode');
+      } else {
+        themeToggleBtn.innerHTML = '🌙';
+        themeToggleBtn.setAttribute('title', 'Switch to Dark Mode');
+      }
+    }
+
+    // --- DOM Elements ---
+    const namePanel = document.getElementById('name-panel');
+    const userNameInput = document.getElementById('user-name-input');
+    const btnProceedName = document.getElementById('btn-proceed-name');
+
+    const marksInput = document.getElementById('marks-input');
+    const marksSlider = document.getElementById('marks-slider');
+    const emojiPreview = document.getElementById('emoji-preview');
+    const btnPredict = document.getElementById('btn-predict');
+    
+    const inputPanel = document.getElementById('input-panel');
+    const resultPanel = document.getElementById('result-panel');
+    const appContainer = document.getElementById('app-container');
+
+    const displayScore = null; // Removed score display
+    const resultEmoji = document.getElementById('result-emoji');
+    const resultMain = document.getElementById('result-main');
+    const resultFunny = document.getElementById('result-funny');
+
+    // Message elements
+    const jayMessage = document.getElementById('jay-message');
+    const btnSendMessage = document.getElementById('btn-send-message');
+    const charCounter = document.getElementById('char-counter');
+    const messageFormState = document.getElementById('message-form-state');
+    const successState = document.getElementById('success-state');
+    const btnPredictAgain = document.getElementById('btn-predict-again');
+    const toast = document.getElementById('toast');
+
+    // --- Funny Message Pools ---
+    const funnyMessages = {
+      under30: [
+        "Papa belt taiyar kar rahe hain... 💀",
+        "Rickshaw chalane ki practice shuru kar do! 🛺",
+        "System hang ho gaya aapka padhai ka! 📉",
+        "Pandit ji se bolo shanti puja karwayen. 🕯️",
+        "Fail hone ka dukh apni jagah, but screen dekh ke maza aaya na? 😂"
+      ],
+      under50: [
+        "Sharma ji ka beta 99 laya hai, aur aap... 🥲",
+        "Border pe khade ho, kabhi bhi gir sakte ho! 🚧",
+        "Grace marks dekar pass kiya hai examiner ne. 🙏",
+        "Chalo, compartment se toh bach gaye! 😅",
+        "Thoda sa aur padh lete toh pass hone ki bheekh na mangni padti! 😝"
+      ],
+      under70: [
+        "Sharma ji ke bete se door raho, depression ho jayega. 😂",
+        "Na idhar ke rahe na udhar ke, pure middle class marks! 😐",
+        "Average is the new cool? Bilkul nahi! 😜",
+        "Mummy bolengi: 'Bas itna hi?' 🤰",
+        "Exam hall me bas aaju-baaju hi dekha lagta hai. 👀"
+      ],
+      under90: [
+        "Chalo, is baar toh bach gaye daant se! 🎉",
+        "Party kab de rahe ho fir? 🍕",
+        "Thoda aur padh lete toh topper ban jate. 😉",
+        "Rishtedaaron ko batane layak marks hain. 😎",
+        "Examiner pighal gaya lagta hai aapke answers dekh ke. 💥"
+      ],
+      topper: [
+        "Hey Prabhu! Aap devta hain! 🛐",
+        "Google me job pakki? 🖥️",
+        "Kaun si chakki ka aata khate ho bhai? 🌾",
+        "Sharma ji ka beta ab aapse tuition lega! 👑",
+        "Itna padh ke kahan jaoge devta purus? 🚀"
+      ]
+    };
+
+    // --- Synchronize Marks Input & Range Slider ---
+    function updateEmojiPreview(value) {
+      if (value === "" || isNaN(value)) {
+        emojiPreview.textContent = "🧐";
+        return;
+      }
+      const val = parseInt(value, 10);
+      if (val <= 30) emojiPreview.textContent = "😨";
+      else if (val <= 50) emojiPreview.textContent = "😬";
+      else if (val <= 70) emojiPreview.textContent = "🙂";
+      else if (val <= 90) emojiPreview.textContent = "😎";
+      else emojiPreview.textContent = "👑";
+    }
+
+    marksInput.addEventListener('input', (e) => {
+      let val = e.target.value;
+      if (val !== "") {
+        val = parseInt(val, 10);
+        if (val > 100) val = 100;
+        if (val < 0) val = 0;
+        marksInput.value = val;
+        marksSlider.value = val;
+      }
+      updateEmojiPreview(val);
+    });
+
+    marksSlider.addEventListener('input', (e) => {
+      const val = e.target.value;
+      marksInput.value = val;
+      updateEmojiPreview(val);
+    });
+
+    // Initialize emoji
+    updateEmojiPreview(marksSlider.value);
+
+    // --- Interactive Ripple Effect on Buttons ---
+    function createRipple(event) {
+      const button = event.currentTarget;
+      const circle = document.createElement("span");
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
+
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+      circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+      circle.classList.add("ripple");
+
+      const ripple = button.getElementsByClassName("ripple")[0];
+      if (ripple) {
+        ripple.remove();
+      }
+
+      button.appendChild(circle);
+    }
+
+    const buttons = document.querySelectorAll(".btn");
+    buttons.forEach(button => {
+      button.addEventListener("click", createRipple);
+    });
+
+    // --- Result Calculation Logic ---
+    let finalMarks = 50;
+    let finalMainResponse = "";
+    let finalFunnyResponse = "";
+
+    btnPredict.addEventListener('click', () => {
+      const inputValStr = marksInput.value.trim();
+      
+      // Validation check
+      if (inputValStr === "" || isNaN(inputValStr)) {
+        triggerInputShake();
+        return;
+      }
+
+      const val = parseInt(inputValStr, 10);
+      if (val < 0 || val > 100) {
+        triggerInputShake();
+        return;
+      }
+
+      finalMarks = val;
+      let emoji = "";
+      let bracketKey = "";
+      
+      if (val <= 30) {
+        finalMainResponse = "Kuch padha karo 😅";
+        emoji = "😅";
+        bracketKey = "under30";
+      } else if (val <= 50) {
+        finalMainResponse = "Thoda aur mehnat karo 📚";
+        emoji = "📚";
+        bracketKey = "under50";
+      } else if (val <= 70) {
+        finalMainResponse = "Achha hai 👍";
+        emoji = "👍";
+        bracketKey = "under70";
+      } else if (val <= 90) {
+        finalMainResponse = "Bahut badhiya 🔥";
+        emoji = "🔥";
+        bracketKey = "under90";
+      } else {
+        finalMainResponse = "Topper ho kya? 🏆";
+        emoji = "🏆";
+        bracketKey = "topper";
+      }
+
+      // Pick a random funny message from the bracket
+      const messageList = funnyMessages[bracketKey];
+      finalFunnyResponse = messageList[Math.floor(Math.random() * messageList.length)];
+
+      // Show results with transition
+      if (displayScore) displayScore.textContent = finalMarks;
+      resultEmoji.textContent = emoji;
+      resultMain.textContent = finalMainResponse;
+      resultFunny.textContent = `"${finalFunnyResponse}"`;
+
+      // Play click sound
+      playClickSound();
+
+      // Animations for switching screen
+      inputPanel.style.opacity = "0";
+      inputPanel.style.transform = "scale(0.95) translateY(-20px)";
+      
+      setTimeout(() => {
+        inputPanel.classList.add('hidden');
+        resultPanel.classList.add('active');
+        // Small delay to trigger the CSS transition cleanly
+        setTimeout(() => {
+          resultPanel.style.opacity = "1";
+          resultPanel.style.transform = "scale(1) translateY(0)";
+        }, 50);
+
+        // Confetti for topper marks (> 90)
+        if (finalMarks > 90) {
+          startConfetti();
+        }
+      }, 400);
+    });
+
+    function triggerInputShake() {
+      marksInput.classList.add('shake');
+      marksInput.style.borderColor = 'red';
+      
+      // Remove shake class after animation finishes
+      setTimeout(() => {
+        marksInput.classList.remove('shake');
+      }, 400);
+
+      // Reset border color on next focus
+      marksInput.addEventListener('focus', function resetBorder() {
+        marksInput.style.borderColor = '';
+        marksInput.removeEventListener('focus', resetBorder);
+      });
+    }
+
+    // --- Step 1 Name Proceed Logic & Validation ---
+    let userName = "";
+
+    const nameErrorMessages = [
+      "😏 Apna asli naam dalo, kyu dar lag raha hai?",
+      "😂 Bhai, ye naam thoda suspicious lag raha hai.",
+      "🤨 Asli naam dalo, attendance nahi lag rahi.",
+      "😎 Hero, apna original naam likho.",
+      "🙄 'hi' naam nahi hota bhai."
+    ];
+
+    function isValidName(name) {
+      const trimmed = name.trim().toLowerCase();
+      
+      // 1. Must contain alphabetic characters
+      if (!/[a-z]/i.test(trimmed)) {
+        return false;
+      }
+      
+      // 2. Reject names with less than 3 unique letters (e.g. "hiiii", "aaaaa", "ab")
+      const lettersOnly = trimmed.replace(/[^a-z]/g, '');
+      const uniqueLetters = new Set(lettersOnly);
+      if (uniqueLetters.size < 3) {
+        return false;
+      }
+
+      // 3. Reject names containing 3 or more consecutive repeated characters (e.g. "helloooo", "heyyyy")
+      if (/(.)\1\1/.test(trimmed)) {
+        return false;
+      }
+
+      // 4. Blacklist regexes for greetings, fake/test names
+      const blacklistRegexes = [
+        /^hi+$/i,
+        /^hello+$/i,
+        /^hey+$/i,
+        /^bro+$/i,
+        /^bhai+$/i,
+        /^abc+$/i,
+        /^xyz+$/i,
+        /^qwerty+$/i,
+        /^test.*$/i,
+        /^user.*$/i,
+        /^anonymous.*$/i,
+        /^guest.*$/i,
+        /^admin.*$/i,
+        /^noone$/i,
+        /^nobody$/i
+      ];
+
+      for (const regex of blacklistRegexes) {
+        if (regex.test(trimmed)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    function showNameError(message) {
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+      }
+      
+      // Show error toast
+      toast.innerHTML = message;
+      toast.classList.add('show');
+      
+      // Shake name input
+      userNameInput.classList.add('shake');
+      userNameInput.style.borderColor = 'red';
+      
+      setTimeout(() => {
+        userNameInput.classList.remove('shake');
+      }, 400);
+
+      userNameInput.addEventListener('focus', function resetBorder() {
+        userNameInput.style.borderColor = '';
+        userNameInput.removeEventListener('focus', resetBorder);
+      });
+      
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+        toastTimeout = null;
+      }, 3000);
+    }
+
+    btnProceedName.addEventListener('click', () => {
+      const val = userNameInput.value.trim();
+      if (val === "") {
+        userNameInput.classList.add('shake');
+        userNameInput.style.borderColor = 'red';
+        setTimeout(() => {
+          userNameInput.classList.remove('shake');
+        }, 400);
+
+        userNameInput.addEventListener('focus', function resetBorder() {
+          userNameInput.style.borderColor = '';
+          userNameInput.removeEventListener('focus', resetBorder);
+        });
+        return;
+      }
+
+      if (!isValidName(val)) {
+        const randomMsg = nameErrorMessages[Math.floor(Math.random() * nameErrorMessages.length)];
+        showNameError(randomMsg);
+        return;
+      }
+
+      userName = val;
+
+      // Animate transition to input-panel
+      namePanel.style.opacity = "0";
+      namePanel.style.transform = "scale(0.95) translateY(-20px)";
+      
+      setTimeout(() => {
+        namePanel.classList.add('hidden');
+        inputPanel.classList.remove('hidden');
+        
+        // Reset scale and opacity on marks panel
+        inputPanel.style.opacity = "0";
+        inputPanel.style.transform = "scale(0.95) translateY(20px)";
+        
+        setTimeout(() => {
+          inputPanel.style.opacity = "1";
+          inputPanel.style.transform = "scale(1) translateY(0)";
+        }, 50);
+      }, 400);
+    });
+
+    userNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnProceedName.click();
+      }
+    });
+
+    // --- Reset & Predict Again Action ---
+    btnPredictAgain.addEventListener('click', () => {
+      stopConfetti();
+      
+      resultPanel.style.opacity = "0";
+      resultPanel.style.transform = "scale(0.95) translateY(20px)";
+      
+      setTimeout(() => {
+        resultPanel.classList.remove('active');
+        namePanel.classList.remove('hidden');
+        
+        // Reset message card state for the next run
+        messageFormState.style.display = 'block';
+        successState.classList.remove('active');
+        userNameInput.value = '';
+        jayMessage.value = '';
+        charCounter.textContent = '0 / 300';
+
+        setTimeout(() => {
+          namePanel.style.opacity = "1";
+          namePanel.style.transform = "scale(1) translateY(0)";
+        }, 50);
+      }, 400);
+    });
+
+    // --- Character Counter Listener ---
+    jayMessage.addEventListener('input', (e) => {
+      const len = e.target.value.length;
+      charCounter.textContent = `${len} / 300`;
+    });
+
+    // --- Send Message to Jay Logic ---
+    function sendJayMessage() {
+      playClickSound();
+      const msgText = jayMessage.value.trim();
+      
+      if (msgText === "") {
+        // Shake message field
+        jayMessage.classList.add('shake');
+        jayMessage.style.borderColor = 'red';
+        setTimeout(() => {
+          jayMessage.classList.remove('shake');
+        }, 400);
+
+        jayMessage.addEventListener('focus', function resetBorder() {
+          jayMessage.style.borderColor = '';
+          jayMessage.removeEventListener('focus', resetBorder);
+        });
+        return;
+      }
+
+      // Submit via POST API to Node.js backend
+      fetch('/submit-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: userName,
+          message: msgText,
+          predictedMarks: finalMarks,
+          predictionResult: finalMainResponse
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to record message on server');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+        
+        const successMsg = `✅ Thanks ${userName}! Tumhara message Jay tak pahunch gaya.`;
+        
+        // Show Toast Notification
+        toast.innerHTML = successMsg;
+        toast.classList.add('show');
+        
+        // Set success card text
+        successState.querySelector('.success-text').textContent = successMsg;
+
+        // Clear message box
+        jayMessage.value = "";
+
+        // Switch to success state
+        messageFormState.style.display = 'none';
+        successState.classList.add('active');
+
+        // Hide toast after 3 seconds
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      })
+      .catch(error => {
+        console.error('Error submitting message, using LocalStorage fallback:', error);
+        
+        // Fallback store in LocalStorage in case backend is offline
+        try {
+          const savedMessages = JSON.parse(localStorage.getItem('jay_messages') || '[]');
+          savedMessages.push({
+            name: userName,
+            message: msgText,
+            predictedMarks: finalMarks,
+            predictionResult: finalMainResponse,
+            timestamp: new Date().toISOString()
+          });
+          localStorage.setItem('jay_messages', JSON.stringify(savedMessages));
+        } catch (err) {
+          console.error("Failed to store message in localStorage:", err);
+        }
+
+        const successMsg = `✅ Thanks ${userName}! Tumhara message Jay tak pahunch gaya.`;
+
+        // Show Toast Notification
+        toast.innerHTML = successMsg;
+        toast.classList.add('show');
+        
+        // Set success card text
+        successState.querySelector('.success-text').textContent = successMsg;
+
+        // Clear message box
+        jayMessage.value = "";
+
+        // Switch to success state
+        messageFormState.style.display = 'none';
+        successState.classList.add('active');
+
+        // Hide toast after 3 seconds
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      });
+    }
+
+    btnSendMessage.addEventListener('click', sendJayMessage);
+
+    // Support keyboard shortcuts (Enter sends message, Shift+Enter makes newline)
+    jayMessage.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendJayMessage();
+      }
+    });
+
+    // --- Canvas Confetti Engine (Self-contained, no external libraries) ---
+    const canvas = document.getElementById("confetti-canvas");
+    const ctx = canvas.getContext("2d");
+    let confettiActive = false;
+    let confettiPieces = [];
+    const confettiColors = ["#f472b6", "#c084fc", "#60a5fa", "#34d399", "#fbbf24", "#f87171"];
+    let animationFrameId = null;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    class ConfettiPiece {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * -canvas.height - 20;
+        this.size = Math.random() * 8 + 6;
+        this.color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        this.speedX = Math.random() * 4 - 2;
+        this.speedY = Math.random() * 5 + 4;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = Math.random() * 4 - 2;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.rotation += this.rotationSpeed;
+
+        if (this.y > canvas.height) {
+          this.y = -20;
+          this.x = Math.random() * canvas.width;
+        }
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        ctx.restore();
+      }
+    }
+
+    function initConfetti() {
+      confettiPieces = [];
+      for (let i = 0; i < 150; i++) {
+        confettiPieces.push(new ConfettiPiece());
+      }
+    }
+
+    function animateConfetti() {
+      if (!confettiActive) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      confettiPieces.forEach((piece) => {
+        piece.update();
+        piece.draw();
+      });
+
+      animationFrameId = requestAnimationFrame(animateConfetti);
+    }
+
+    function startConfetti() {
+      if (confettiActive) return;
+      confettiActive = true;
+      initConfetti();
+      animateConfetti();
+      
+      // Auto-stop confetti after 5 seconds to conserve CPU/battery
+      setTimeout(() => {
+        stopConfetti();
+      }, 5000);
+    }
+
+    function stopConfetti() {
+      confettiActive = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+  </script>
+</body>
+</html>
