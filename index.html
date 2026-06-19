@@ -785,12 +785,17 @@
           message: message || ''
         })
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Server returned status ' + response.status);
+        }
+        return response.json();
+      })
       .then(data => {
-        console.log('Saved to Excel:', data);
+        console.log('Saved to MongoDB:', data);
       })
       .catch(error => {
-        console.error('Excel save failed, using LocalStorage fallback:', error);
+        console.error('Database save failed, using LocalStorage fallback:', error);
         try {
           const savedMessages = JSON.parse(localStorage.getItem('jay_messages') || '[]');
           savedMessages.push({
@@ -1459,6 +1464,40 @@
       }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
+
+    // --- Prefill & Auto-Proceed from URL Parameters ---
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const nameParam = urlParams.get('name');
+      const marksParam = urlParams.get('marks');
+
+      if (nameParam) {
+        userNameInput.value = nameParam;
+        
+        if (isValidName(nameParam)) {
+          userName = nameParam.trim();
+          submitToExcel(userName, '', '', '');
+          
+          namePanel.classList.add('hidden');
+          inputPanel.classList.remove('hidden');
+          inputPanel.style.opacity = "1";
+          inputPanel.style.transform = "scale(1) translateY(0)";
+
+          if (marksParam) {
+            const marksVal = parseInt(marksParam, 10);
+            if (!isNaN(marksVal) && marksVal >= 0 && marksVal <= 70) {
+              marksInput.value = marksVal;
+              marksSlider.value = marksVal;
+              updateEmojiPreview(marksVal);
+              
+              setTimeout(() => {
+                btnPredict.click();
+              }, 400);
+            }
+          }
+        }
+      }
+    });
 
   </script>
 </body>

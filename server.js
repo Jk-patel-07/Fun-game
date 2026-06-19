@@ -1,30 +1,59 @@
+require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const xlsx = require('xlsx');
+const mongoose = require('mongoose');
 
 const PORT = 8080;
 const HTML_FILE = path.join(__dirname, 'index.html');
-const JAY_EXCEL = path.join(__dirname, 'Jay_Messages.xlsx');
-const TEST_EXCEL = path.join(__dirname, 'Test_Messages.xlsx');
 
-// Helper to format date in YYYY-MM-DD HH:MM:SS
-function getFormattedDateTime() {
-  const date = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  
-  const yyyy = date.getFullYear();
-  const mm = pad(date.getMonth() + 1);
-  const dd = pad(date.getDate());
-  
-  const hh = pad(date.getHours());
-  const min = pad(date.getMinutes());
-  const ss = pad(date.getSeconds());
-  
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+// MongoDB Configurations
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fun';
+
+async function connectToMongo() {
+  try {
+    // If already connected, do nothing
+    if (mongoose.connection.readyState === 1) return;
+    
+    await mongoose.connect(MONGO_URI);
+    console.log(`[Mongoose] Connected successfully to database: "${mongoose.connection.name}"`);
+  } catch (err) {
+    console.error(`[Mongoose] Connection failed: ${err.message}. Will try to reconnect on incoming request.`);
+  }
 }
 
-const server = http.createServer((req, res) => {
+// Initial connection attempt on startup
+connectToMongo();
+
+// Define User Schema & Model
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Name is required.'],
+    trim: true
+  },
+  mark: {
+    type: Number,
+    min: [0, 'Marks cannot be less than 0.'],
+    max: [70, 'Marks cannot be more than 70.']
+  },
+  feedback: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  time: {
+    type: Date,
+    default: Date.now
+  }
+}, { 
+  collection: 'user', 
+  versionKey: false 
+});
+
+const User = mongoose.model('User', userSchema);
+
+const server = http.createServer(async (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -57,13 +86,12 @@ const server = http.createServer((req, res) => {
       body += chunk.toString();
     });
 
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
         const name = (payload.name || '').trim();
         const message = (payload.message || '').trim();
-        const predictedMarks = payload.predictedMarks !== undefined ? Number(payload.predictedMarks) : '';
-        const predictionResult = (payload.predictionResult || '').trim();
+        const predictedMarks = payload.predictedMarks !== undefined && payload.predictedMarks !== '' ? Number(payload.predictedMarks) : undefined;
 
         if (!name) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -71,55 +99,31 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Excel file selection dynamically:
-        // Rejects name variations containing 'test' (e.g. 'test123', 'mytest') or mock greetings
-        const isTestName = /test|abc|xyz|qwerty|anonymous|guest|hii+|hello+|heyy+|bro+|bhai+/i.test(name);
-        const EXCEL_FILE = isTestName ? TEST_EXCEL : JAY_EXCEL;
-        const excelFilename = isTestName ? 'Test_Messages.xlsx' : 'Jay_Messages.xlsx';
-
-        // Excel file generation/update using sheetjs
-        let data = [];
-        if (fs.existsSync(EXCEL_FILE)) {
-          try {
-            const workbook = xlsx.readFile(EXCEL_FILE);
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            data = xlsx.utils.sheet_to_json(worksheet);
-          } catch (readErr) {
-            console.error("Error reading existing excel file, creating a new database instead:", readErr);
-            data = [];
+        // Reconnect to MongoDB if connection is currently down
+        if (mongoose.connection.readyState !== 1) {
+          await connectToMongo();
+          if (mongoose.connection.readyState !== 1) {
+            throw new Error('Database is offline. Triggering LocalStorage fallback.');
           }
         }
 
-        // Determine next ID
-        const nextId = data.length > 0 ? Math.max(...data.map(r => Number(r.ID || r.__EMPTY || 0))) + 1 : 1;
+        // Create Mongoose document
+        const newUser = new User({
+          name: name,
+          mark: predictedMarks,
+          feedback: message
+        });
 
-        // Construct new row
-        const newRow = {
-          'ID': nextId,
-          'Date & Time': getFormattedDateTime(),
-          'Name': name,
-          'Predicted Marks': predictedMarks,
-          'Prediction Result': predictionResult,
-          'Message': message
-        };
-
-        data.push(newRow);
-
-        // Convert data back to Excel sheets and write to file
-        const newWorksheet = xlsx.utils.json_to_sheet(data);
-        const newWorkbook = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(newWorkbook, newWorksheet, 'Messages');
-        xlsx.writeFile(newWorkbook, EXCEL_FILE);
-
-        console.log(`[Excel Db] Appended message ID ${nextId} from ${name} into ${excelFilename}`);
+        // Save to MongoDB (validates automatically using schema)
+        await newUser.save();
+        console.log(`[Mongoose] Saved user: "${name}" to collection: "user"`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: `Message recorded in ${excelFilename}!` }));
+        res.end(JSON.stringify({ success: true, message: 'Recorded in MongoDB database collection: "user"!' }));
       } catch (err) {
-        console.error("Error writing message to Excel file:", err);
+        console.error("[Mongoose] Error saving user:", err.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to write message to Excel file.' }));
+        res.end(JSON.stringify({ error: err.message || 'Failed to save user to database.' }));
       }
     });
     return;
@@ -133,6 +137,5 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving page on http://localhost:${PORT}`);
-  console.log(`User database: ${JAY_EXCEL}`);
-  console.log(`Test database: ${TEST_EXCEL}`);
+  console.log(`MongoDB URI: ${MONGO_URI}`);
 });
