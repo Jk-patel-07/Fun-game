@@ -772,7 +772,7 @@
       }
     }
 
-    function submitToExcel(name, marks, result, message) {
+    function submitToMongoDB(name, marks, result, message) {
       fetch('/submit-message', {
         method: 'POST',
         headers: {
@@ -1032,7 +1032,7 @@
 
       // Play click sound
       playClickSound();
-      submitToExcel(userName, finalMarks, finalMainResponse, '');
+      submitToMongoDB(userName, finalMarks, finalMainResponse, '');
 
       // Animations for switching screen
       inputPanel.style.opacity = "0";
@@ -1205,7 +1205,7 @@
       }
 
       userName = val;
-      submitToExcel(userName, '', '', '');
+      submitToMongoDB(userName, '', '', '');
 
       // Animate transition to input-panel
       namePanel.style.opacity = "0";
@@ -1476,7 +1476,7 @@
         
         if (isValidName(nameParam)) {
           userName = nameParam.trim();
-          submitToExcel(userName, '', '', '');
+          submitToMongoDB(userName, '', '', '');
           
           namePanel.classList.add('hidden');
           inputPanel.classList.remove('hidden');
