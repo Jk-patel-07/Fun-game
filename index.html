@@ -662,10 +662,10 @@
           type="number" 
           id="marks-input" 
           class="marks-input" 
-          placeholder="0 - 100" 
+          placeholder="Expected marks (0-70)" 
           min="0" 
-          max="100" 
-          value="50"
+          max="70" 
+          value="35"
           autocomplete="off"
         >
       </div>
@@ -676,8 +676,8 @@
           id="marks-slider" 
           class="marks-slider" 
           min="0" 
-          max="100" 
-          value="50"
+          max="70" 
+          value="35"
         >
       </div>
 
@@ -871,10 +871,10 @@
         return;
       }
       const val = parseInt(value, 10);
-      if (val <= 30) emojiPreview.textContent = "😨";
-      else if (val <= 50) emojiPreview.textContent = "😬";
-      else if (val <= 70) emojiPreview.textContent = "🙂";
-      else if (val <= 90) emojiPreview.textContent = "😎";
+      if (val <= 21) emojiPreview.textContent = "😨";
+      else if (val <= 35) emojiPreview.textContent = "😬";
+      else if (val <= 49) emojiPreview.textContent = "🙂";
+      else if (val <= 63) emojiPreview.textContent = "😎";
       else emojiPreview.textContent = "👑";
     }
 
@@ -882,10 +882,8 @@
       let val = e.target.value;
       if (val !== "") {
         val = parseInt(val, 10);
-        if (val > 100) val = 100;
-        if (val < 0) val = 0;
-        marksInput.value = val;
-        marksSlider.value = val;
+        // Sync slider (cap visually), but let user type any number (we validate > 70 on Check Result)
+        marksSlider.value = Math.max(0, Math.min(70, val || 0));
       }
       updateEmojiPreview(val);
     });
@@ -925,7 +923,7 @@
     });
 
     // --- Result Calculation Logic ---
-    let finalMarks = 50;
+    let finalMarks = 35;
     let finalMainResponse = "";
     let finalFunnyResponse = "";
 
@@ -939,8 +937,20 @@
       }
 
       const val = parseInt(inputValStr, 10);
-      if (val < 0 || val > 100) {
+      if (val < 0) {
         triggerInputShake();
+        return;
+      }
+
+      if (val > 70) {
+        const marksErrorMessages = [
+          "😅 Bhai, Maths ka paper 70 marks ka hi tha!",
+          "😂 70 se zyada marks kahan se laoge?",
+          "🤨 Paper 70 marks ka tha, yaad hai na?",
+          "📚 Maximum marks allowed: 70"
+        ];
+        const randomMsg = marksErrorMessages[Math.floor(Math.random() * marksErrorMessages.length)];
+        showMarksError(randomMsg);
         return;
       }
 
@@ -948,19 +958,19 @@
       let emoji = "";
       let bracketKey = "";
       
-      if (val <= 30) {
+      if (val <= 21) {
         finalMainResponse = "Kuch padha karo 😅";
         emoji = "😅";
         bracketKey = "under30";
-      } else if (val <= 50) {
+      } else if (val <= 35) {
         finalMainResponse = "Thoda aur mehnat karo 📚";
         emoji = "📚";
         bracketKey = "under50";
-      } else if (val <= 70) {
+      } else if (val <= 49) {
         finalMainResponse = "Achha hai 👍";
         emoji = "👍";
         bracketKey = "under70";
-      } else if (val <= 90) {
+      } else if (val <= 63) {
         finalMainResponse = "Bahut badhiya 🔥";
         emoji = "🔥";
         bracketKey = "under90";
@@ -996,12 +1006,37 @@
           resultPanel.style.transform = "scale(1) translateY(0)";
         }, 50);
 
-        // Confetti for topper marks (> 90)
-        if (finalMarks > 90) {
+        // Confetti for topper marks (> 63)
+        if (finalMarks > 63) {
           startConfetti();
         }
       }, 400);
     });
+
+    function showMarksError(message) {
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+      }
+      toast.innerHTML = message;
+      toast.classList.add('show');
+      
+      marksInput.classList.add('shake');
+      marksInput.style.borderColor = 'red';
+      
+      setTimeout(() => {
+        marksInput.classList.remove('shake');
+      }, 400);
+
+      marksInput.addEventListener('focus', function resetBorder() {
+        marksInput.style.borderColor = '';
+        marksInput.removeEventListener('focus', resetBorder);
+      });
+
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+        toastTimeout = null;
+      }, 3000);
+    }
 
     function triggerInputShake() {
       marksInput.classList.add('shake');
