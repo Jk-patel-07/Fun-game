@@ -15,7 +15,7 @@ async function connectToMongo() {
     // If already connected, do nothing
     if (mongoose.connection.readyState === 1) return;
     
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGO_URI, { dbName: 'fun' });
     console.log(`[Mongoose] Connected successfully to database: "${mongoose.connection.name}"`);
   } catch (err) {
     console.error(`[Mongoose] Connection failed: ${err.message}. Will try to reconnect on incoming request.`);
