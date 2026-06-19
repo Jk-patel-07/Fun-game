@@ -629,7 +629,7 @@
 
     <!-- Website Branding -->
     <h1>Maths</h1>
-    <p class="subtitle">EGD ka paper aa raha hai, pata hi nahi? 😭</p>
+    <p class="subtitle">EGD ka paper aa raha hai, pata he kya apko? 😭</p>
 
     <!-- NAME PANEL (Step 1) -->
     <div class="name-panel" id="name-panel">
@@ -770,6 +770,41 @@
       } catch (err) {
         console.warn("Click sound failed:", err);
       }
+    }
+
+    function submitToExcel(name, marks, result, message) {
+      fetch('/submit-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          predictedMarks: marks !== undefined && marks !== null ? marks : '',
+          predictionResult: result || '',
+          message: message || ''
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Saved to Excel:', data);
+      })
+      .catch(error => {
+        console.error('Excel save failed, using LocalStorage fallback:', error);
+        try {
+          const savedMessages = JSON.parse(localStorage.getItem('jay_messages') || '[]');
+          savedMessages.push({
+            name: name,
+            message: message || '',
+            predictedMarks: marks !== undefined && marks !== null ? marks : '',
+            predictionResult: result || '',
+            timestamp: new Date().toISOString()
+          });
+          localStorage.setItem('jay_messages', JSON.stringify(savedMessages));
+        } catch (err) {
+          console.error("Failed to store message in localStorage:", err);
+        }
+      });
     }
     
     // Auto-detect system preference or load from localStorage
@@ -992,6 +1027,7 @@
 
       // Play click sound
       playClickSound();
+      submitToExcel(userName, finalMarks, finalMainResponse, '');
 
       // Animations for switching screen
       inputPanel.style.opacity = "0";
@@ -1164,6 +1200,7 @@
       }
 
       userName = val;
+      submitToExcel(userName, '', '', '');
 
       // Animate transition to input-panel
       namePanel.style.opacity = "0";

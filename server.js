@@ -5,7 +5,8 @@ const xlsx = require('xlsx');
 
 const PORT = 8080;
 const HTML_FILE = path.join(__dirname, 'index.html');
-const EXCEL_FILE = path.join(__dirname, 'Jay_Messages.xlsx');
+const JAY_EXCEL = path.join(__dirname, 'Jay_Messages.xlsx');
+const TEST_EXCEL = path.join(__dirname, 'Test_Messages.xlsx');
 
 // Helper to format date in YYYY-MM-DD HH:MM:SS
 function getFormattedDateTime() {
@@ -64,11 +65,17 @@ const server = http.createServer((req, res) => {
         const predictedMarks = payload.predictedMarks !== undefined ? Number(payload.predictedMarks) : '';
         const predictionResult = (payload.predictionResult || '').trim();
 
-        if (!name || !message) {
+        if (!name) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Name and message are required.' }));
+          res.end(JSON.stringify({ error: 'Name is required.' }));
           return;
         }
+
+        // Excel file selection dynamically:
+        // Rejects name variations containing 'test' (e.g. 'test123', 'mytest') or mock greetings
+        const isTestName = /test|abc|xyz|qwerty|anonymous|guest|hii+|hello+|heyy+|bro+|bhai+/i.test(name);
+        const EXCEL_FILE = isTestName ? TEST_EXCEL : JAY_EXCEL;
+        const excelFilename = isTestName ? 'Test_Messages.xlsx' : 'Jay_Messages.xlsx';
 
         // Excel file generation/update using sheetjs
         let data = [];
@@ -85,7 +92,7 @@ const server = http.createServer((req, res) => {
         }
 
         // Determine next ID
-        const nextId = data.length > 0 ? Math.max(...data.map(r => Number(r.ID || 0))) + 1 : 1;
+        const nextId = data.length > 0 ? Math.max(...data.map(r => Number(r.ID || r.__EMPTY || 0))) + 1 : 1;
 
         // Construct new row
         const newRow = {
@@ -105,10 +112,10 @@ const server = http.createServer((req, res) => {
         xlsx.utils.book_append_sheet(newWorkbook, newWorksheet, 'Messages');
         xlsx.writeFile(newWorkbook, EXCEL_FILE);
 
-        console.log(`[Excel Db] Appended message ID ${nextId} from ${name}`);
+        console.log(`[Excel Db] Appended message ID ${nextId} from ${name} into ${excelFilename}`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: 'Message recorded in Jay_Messages.xlsx!' }));
+        res.end(JSON.stringify({ success: true, message: `Message recorded in ${excelFilename}!` }));
       } catch (err) {
         console.error("Error writing message to Excel file:", err);
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -126,5 +133,6 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving page on http://localhost:${PORT}`);
-  console.log(`Excel database at ${EXCEL_FILE}`);
+  console.log(`User database: ${JAY_EXCEL}`);
+  console.log(`Test database: ${TEST_EXCEL}`);
 });
