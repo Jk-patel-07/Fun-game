@@ -10,6 +10,12 @@ const HTML_FILE = path.join(__dirname, 'index.html');
 // MongoDB Configurations
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fun';
 
+console.log(`\n--- Diagnostics ---`);
+console.log(`Working Directory (cwd): "${process.cwd()}"`);
+console.log(`Environment MONGO_URI loaded: "${process.env.MONGO_URI || 'NOT FOUND'}"`);
+console.log(`Connecting to: "${MONGO_URI}"`);
+console.log(`-------------------\n`);
+
 async function connectToMongo() {
   try {
     // If already connected, do nothing
