@@ -1,4 +1,5 @@
 # Maths Game 🔮
+#  FUN 🔮
 
 A fully responsive, glassmorphic Next.js App Router single-page application that predicts expected maths marks (0-70 scale), generates funny roasts based on scores, animates custom canvas confetti, plays synthesized click sounds, and persists entries directly into a MongoDB Atlas database using Mongoose.
 
