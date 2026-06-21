@@ -1,30 +1,32 @@
 /* CSS Variables for Dark/Light Themes and Design Tokens */
 :root {
-  --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --bg-gradient: linear-gradient(135deg, #020617, #0f172a, #1e1b4b);
+  --bg-overlay: rgba(0, 0, 0, 0.25);
+  --card-bg: rgba(15, 23, 42, 0.45);
+  --card-border: rgba(255, 255, 255, 0.12);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
   --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
+  --text-secondary: rgba(255, 255, 255, 0.7);
   --accent-color: #ec4899;
   --accent-glow: rgba(236, 72, 153, 0.5);
   --slider-track: rgba(255, 255, 255, 0.1);
-  --input-bg: rgba(255, 255, 255, 0.07);
+  --input-bg: rgba(255, 255, 255, 0.08);
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --transition-speed: 0.3s;
 }
 
 [data-theme="light"] {
-  --bg-gradient: linear-gradient(135deg, #f0f4ff, #e0e7ff, #fae8ff);
+  --bg-gradient: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0);
+  --bg-overlay: rgba(0, 0, 0, 0.2);
   --card-bg: rgba(255, 255, 255, 0.7);
-  --card-border: rgba(255, 255, 255, 0.5);
-  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  --card-border: rgba(255, 255, 255, 0.4);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
   --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --accent-color: #db2777;
   --accent-glow: rgba(219, 39, 119, 0.3);
   --slider-track: rgba(15, 23, 42, 0.1);
-  --input-bg: rgba(15, 23, 42, 0.05);
+  --input-bg: rgba(255, 255, 255, 0.5);
 }
 
 /* Base Styles & Reset */
@@ -48,30 +50,39 @@ body {
   position: relative;
 }
 
-/* Background blobs for a modern, fluid visual appeal */
-.blob {
-  position: absolute;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  filter: blur(80px);
-  z-index: 0;
-  opacity: 0.5;
+/* Fixed Full-Screen Nature Background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -2;
   pointer-events: none;
-  animation: float-blob 20s infinite alternate ease-in-out;
 }
 
-.blob-1 {
-  background: #c084fc;
-  top: 10%;
-  left: 10%;
+/* Fixed Semi-Transparent Overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-overlay);
+  z-index: -1;
+  pointer-events: none;
+  transition: background var(--transition-speed) ease;
 }
 
-.blob-2 {
-  background: #f472b6;
-  bottom: 10%;
-  right: 10%;
-  animation-delay: -10s;
+/* Hide background blobs to focus on the nature background */
+.blob {
+  display: none !important;
 }
 
 @keyframes float-blob {

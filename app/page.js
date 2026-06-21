@@ -56,6 +56,12 @@ const marksErrorMessages = [
   "📚 Maximum marks allowed: 70"
 ];
 
+// --- Funny Message Picker (outside component to remain pure during render) ---
+const getRandomFunnyMessage = (bracketKey) => {
+  const messageList = funnyMessages[bracketKey];
+  return messageList[Math.floor(Math.random() * messageList.length)];
+};
+
 export default function Home() {
   // Navigation workflow state: 'name' | 'predict' | 'result'
   const [step, setStep] = useState('name');
@@ -89,6 +95,7 @@ export default function Home() {
   
   // Theme state
   const [theme, setTheme] = useState('dark');
+  const [mounted, setMounted] = useState(false);
 
   // Web Audio Context Reference
   const audioCtxRef = useRef(null);
@@ -102,71 +109,53 @@ export default function Home() {
   // Toast timer reference
   const toastTimeoutRef = useRef(null);
 
-  // --- Theme Initializer ---
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-    setTheme(initialTheme);
-    document.documentElement.setAttribute('data-theme', initialTheme);
-  }, []);
+  // --- Name Validation ---
+  const isValidName = (name) => {
+    const trimmed = name.trim().toLowerCase();
+    
+    // 1. Must contain alphabetic characters
+    if (!/[a-z]/i.test(trimmed)) {
+      return false;
+    }
+    
+    // 2. Reject names with less than 3 unique letters (e.g. "hiiii", "ab")
+    const lettersOnly = trimmed.replace(/[^a-z]/g, '');
+    const uniqueLetters = new Set(lettersOnly);
+    if (uniqueLetters.size < 3) {
+      return false;
+    }
 
-  // --- Sync URL params ---
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const nameParam = urlParams.get('name');
-    const marksParam = urlParams.get('marks');
+    // 3. Reject names containing 3 or more consecutive repeated characters (e.g. "heyyyy")
+    if (/(.)\1\1/.test(trimmed)) {
+      return false;
+    }
 
-    if (nameParam && isValidName(nameParam)) {
-      setUserName(nameParam.trim());
-      submitToMongoDB(nameParam.trim(), '', '', '');
-      setStep('predict');
+    // 4. Blacklist regexes for greetings, fake/test names
+    const blacklistRegexes = [
+      /^hi+$/i,
+      /^hello+$/i,
+      /^hey+$/i,
+      /^bro+$/i,
+      /^bhai+$/i,
+      /^abc+$/i,
+      /^xyz+$/i,
+      /^qwerty+$/i,
+      /^test.*$/i,
+      /^user.*$/i,
+      /^anonymous.*$/i,
+      /^guest.*$/i,
+      /^admin.*$/i,
+      /^noone$/i,
+      /^nobody$/i
+    ];
 
-      if (marksParam) {
-        const marksVal = parseInt(marksParam, 10);
-        if (!isNaN(marksVal) && marksVal >= 0 && marksVal <= 70) {
-          setTypedMarks(String(marksVal));
-          setSliderMarks(marksVal);
-          // Auto trigger predict click after delay
-          setTimeout(() => {
-            triggerPrediction(nameParam.trim(), marksVal);
-          }, 450);
-        }
+    for (const regex of blacklistRegexes) {
+      if (regex.test(trimmed)) {
+        return false;
       }
     }
-  }, []);
 
-  // --- Confetti Canvas Resizer ---
-  useEffect(() => {
-    const handleResize = () => {
-      if (canvasRef.current) {
-        canvasRef.current.width = window.innerWidth;
-        canvasRef.current.height = window.innerHeight;
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // --- Toast helper ---
-  const triggerToast = (msg) => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-    }
-    setToastMessage(msg);
-    setShowToast(true);
-    toastTimeoutRef.current = setTimeout(() => {
-      setShowToast(false);
-    }, 3000);
-  };
-
-  // --- Toggle Theme ---
-  const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    document.documentElement.setAttribute('data-theme', nextTheme);
-    localStorage.setItem('theme', nextTheme);
+    return true;
   };
 
   // --- Click Sound Synthesis ---
@@ -240,54 +229,202 @@ export default function Home() {
     });
   };
 
-  // --- Name Validation ---
-  const isValidName = (name) => {
-    const trimmed = name.trim().toLowerCase();
+  // --- Trigger Prediction Calculation ---
+  const triggerPrediction = (nameToSave, val) => {
+    let mainResponse = "";
+    let emoji = "";
+    let bracketKey = "";
     
-    // 1. Must contain alphabetic characters
-    if (!/[a-z]/i.test(trimmed)) {
-      return false;
-    }
-    
-    // 2. Reject names with less than 3 unique letters (e.g. "hiiii", "ab")
-    const lettersOnly = trimmed.replace(/[^a-z]/g, '');
-    const uniqueLetters = new Set(lettersOnly);
-    if (uniqueLetters.size < 3) {
-      return false;
-    }
-
-    // 3. Reject names containing 3 or more consecutive repeated characters (e.g. "heyyyy")
-    if (/(.)\1\1/.test(trimmed)) {
-      return false;
-    }
-
-    // 4. Blacklist regexes for greetings, fake/test names
-    const blacklistRegexes = [
-      /^hi+$/i,
-      /^hello+$/i,
-      /^hey+$/i,
-      /^bro+$/i,
-      /^bhai+$/i,
-      /^abc+$/i,
-      /^xyz+$/i,
-      /^qwerty+$/i,
-      /^test.*$/i,
-      /^user.*$/i,
-      /^anonymous.*$/i,
-      /^guest.*$/i,
-      /^admin.*$/i,
-      /^noone$/i,
-      /^nobody$/i
-    ];
-
-    for (const regex of blacklistRegexes) {
-      if (regex.test(trimmed)) {
-        return false;
-      }
+    if (val <= 21) {
+      mainResponse = "Kuch padha karo 😅";
+      emoji = "😅";
+      bracketKey = "under30";
+    } else if (val <= 35) {
+      mainResponse = "Thoda aur mehnat karo 📚";
+      emoji = "📚";
+      bracketKey = "under50";
+    } else if (val <= 49) {
+      mainResponse = "Achha hai 👍";
+      emoji = "👍";
+      bracketKey = "under70";
+    } else if (val <= 63) {
+      mainResponse = "Bahut badhiya 🔥";
+      emoji = "🔥";
+      bracketKey = "under90";
+    } else {
+      mainResponse = "Topper ho kya? 🏆";
+      emoji = "🏆";
+      bracketKey = "topper";
     }
 
-    return true;
+    const funnyResponse = getRandomFunnyMessage(bracketKey);
+
+    setPredictedMarks(val);
+    setResultMain(mainResponse);
+    setResultFunny(funnyResponse);
+    setResultEmoji(emoji);
+
+    playClickSound();
+    submitToMongoDB(nameToSave, val, mainResponse, '');
+    setStep('result');
+
+    if (val > 63) {
+      startConfetti();
+    }
   };
+
+  // --- Canvas Confetti Engine ---
+  const initConfettiPieces = () => {
+    const pieces = [];
+    const colors = ["#f472b6", "#c084fc", "#60a5fa", "#34d399", "#fbbf24", "#f87171"];
+    const w = canvasRef.current ? canvasRef.current.width : window.innerWidth;
+    const h = canvasRef.current ? canvasRef.current.height : window.innerHeight;
+
+    for (let i = 0; i < 150; i++) {
+      pieces.push({
+        x: Math.random() * w,
+        y: Math.random() * -h - 20,
+        size: Math.random() * 8 + 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        speedX: Math.random() * 4 - 2,
+        speedY: Math.random() * 5 + 4,
+        rotation: Math.random() * 360,
+        rotationSpeed: Math.random() * 4 - 2,
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          this.rotation += this.rotationSpeed;
+
+          if (this.y > h) {
+            this.y = -20;
+            this.x = Math.random() * w;
+          }
+        },
+        draw(ctx) {
+          ctx.save();
+          ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
+          ctx.rotate((this.rotation * Math.PI) / 180);
+          ctx.fillStyle = this.color;
+          ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+          ctx.restore();
+        }
+      });
+    }
+    confettiPiecesRef.current = pieces;
+  };
+
+  const animateConfetti = () => {
+    if (!confettiActiveRef.current) return;
+    const ctx = canvasRef.current ? canvasRef.current.getContext('2d') : null;
+    if (ctx && canvasRef.current) {
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      confettiPiecesRef.current.forEach((piece) => {
+        piece.update();
+        piece.draw(ctx);
+      });
+    }
+    animationFrameIdRef.current = requestAnimationFrame(animateConfetti);
+  };
+
+  const startConfetti = () => {
+    if (confettiActiveRef.current) return;
+    confettiActiveRef.current = true;
+    initConfettiPieces();
+    animateConfetti();
+    
+    // Auto-stop confetti after 5 seconds to conserve CPU
+    setTimeout(() => {
+      stopConfetti();
+    }, 5000);
+  };
+
+  const stopConfetti = () => {
+    confettiActiveRef.current = false;
+    if (animationFrameIdRef.current) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+    }
+    const ctx = canvasRef.current ? canvasRef.current.getContext('2d') : null;
+    if (ctx && canvasRef.current) {
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  };
+
+  // --- Theme Initializer ---
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+    
+    setTimeout(() => {
+      setMounted(true);
+      setTheme(initialTheme);
+    }, 0);
+
+    document.documentElement.setAttribute('data-theme', initialTheme);
+  }, []);
+
+  // --- Sync URL params ---
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const nameParam = urlParams.get('name');
+    const marksParam = urlParams.get('marks');
+
+    if (nameParam && isValidName(nameParam)) {
+      setTimeout(() => {
+        setUserName(nameParam.trim());
+        submitToMongoDB(nameParam.trim(), '', '', '');
+        setStep('predict');
+
+        if (marksParam) {
+          const marksVal = parseInt(marksParam, 10);
+          if (!isNaN(marksVal) && marksVal >= 0 && marksVal <= 70) {
+            setTypedMarks(String(marksVal));
+            setSliderMarks(marksVal);
+            // Auto trigger predict click after delay
+            setTimeout(() => {
+              triggerPrediction(nameParam.trim(), marksVal);
+            }, 450);
+          }
+        }
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Confetti Canvas Resizer ---
+  useEffect(() => {
+    const handleResize = () => {
+      if (canvasRef.current) {
+        canvasRef.current.width = window.innerWidth;
+        canvasRef.current.height = window.innerHeight;
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // --- Toast helper ---
+  const triggerToast = (msg) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastMessage(msg);
+    setShowToast(true);
+    toastTimeoutRef.current = setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  // --- Toggle Theme ---
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('theme', nextTheme);
+  };
+
+  // Helper functions playClickSound, submitToMongoDB and isValidName moved to top of file
 
   // --- Proceed Step 1 Button ---
   const handleProceedName = () => {
@@ -338,50 +475,7 @@ export default function Home() {
     return "👑";
   };
 
-  // --- Trigger Prediction Calculation ---
-  const triggerPrediction = (nameToSave, val) => {
-    let mainResponse = "";
-    let emoji = "";
-    let bracketKey = "";
-    
-    if (val <= 21) {
-      mainResponse = "Kuch padha karo 😅";
-      emoji = "😅";
-      bracketKey = "under30";
-    } else if (val <= 35) {
-      mainResponse = "Thoda aur mehnat karo 📚";
-      emoji = "📚";
-      bracketKey = "under50";
-    } else if (val <= 49) {
-      mainResponse = "Achha hai 👍";
-      emoji = "👍";
-      bracketKey = "under70";
-    } else if (val <= 63) {
-      mainResponse = "Bahut badhiya 🔥";
-      emoji = "🔥";
-      bracketKey = "under90";
-    } else {
-      mainResponse = "Topper ho kya? 🏆";
-      emoji = "🏆";
-      bracketKey = "topper";
-    }
-
-    const messageList = funnyMessages[bracketKey];
-    const funnyResponse = messageList[Math.floor(Math.random() * messageList.length)];
-
-    setPredictedMarks(val);
-    setResultMain(mainResponse);
-    setResultFunny(funnyResponse);
-    setResultEmoji(emoji);
-
-    playClickSound();
-    submitToMongoDB(nameToSave, val, mainResponse, '');
-    setStep('result');
-
-    if (val > 63) {
-      startConfetti();
-    }
-  };
+  // triggerPrediction moved to top of file
 
   const handleCheckResult = () => {
     const inputValStr = typedMarks.trim();
@@ -484,81 +578,11 @@ export default function Home() {
     setSliderMarks(35);
   };
 
-  // --- Canvas Confetti Engine ---
-  const initConfettiPieces = () => {
-    const pieces = [];
-    const colors = ["#f472b6", "#c084fc", "#60a5fa", "#34d399", "#fbbf24", "#f87171"];
-    const w = canvasRef.current ? canvasRef.current.width : window.innerWidth;
-    const h = canvasRef.current ? canvasRef.current.height : window.innerHeight;
 
-    for (let i = 0; i < 150; i++) {
-      pieces.push({
-        x: Math.random() * w,
-        y: Math.random() * -h - 20,
-        size: Math.random() * 8 + 6,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        speedX: Math.random() * 4 - 2,
-        speedY: Math.random() * 5 + 4,
-        rotation: Math.random() * 360,
-        rotationSpeed: Math.random() * 4 - 2,
-        update() {
-          this.x += this.speedX;
-          this.y += this.speedY;
-          this.rotation += this.rotationSpeed;
 
-          if (this.y > h) {
-            this.y = -20;
-            this.x = Math.random() * w;
-          }
-        },
-        draw(ctx) {
-          ctx.save();
-          ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
-          ctx.rotate((this.rotation * Math.PI) / 180);
-          ctx.fillStyle = this.color;
-          ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
-          ctx.restore();
-        }
-      });
-    }
-    confettiPiecesRef.current = pieces;
-  };
-
-  const animateConfetti = () => {
-    if (!confettiActiveRef.current) return;
-    const ctx = canvasRef.current ? canvasRef.current.getContext('2d') : null;
-    if (ctx && canvasRef.current) {
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      confettiPiecesRef.current.forEach((piece) => {
-        piece.update();
-        piece.draw(ctx);
-      });
-    }
-    animationFrameIdRef.current = requestAnimationFrame(animateConfetti);
-  };
-
-  const startConfetti = () => {
-    if (confettiActiveRef.current) return;
-    confettiActiveRef.current = true;
-    initConfettiPieces();
-    animateConfetti();
-    
-    // Auto-stop confetti after 5 seconds to conserve CPU
-    setTimeout(() => {
-      stopConfetti();
-    }, 5000);
-  };
-
-  const stopConfetti = () => {
-    confettiActiveRef.current = false;
-    if (animationFrameIdRef.current) {
-      cancelAnimationFrame(animationFrameIdRef.current);
-    }
-    const ctx = canvasRef.current ? canvasRef.current.getContext('2d') : null;
-    if (ctx && canvasRef.current) {
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
-  };
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <>
@@ -583,6 +607,7 @@ export default function Home() {
             onClick={toggleTheme}
             aria-label="Toggle Theme" 
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            suppressHydrationWarning
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
@@ -674,7 +699,7 @@ export default function Home() {
 
             <div className="result-card">
               <div className="result-main" id="result-main">{resultMain}</div>
-              <div className="result-funny" id="result-funny">"{resultFunny}"</div>
+              <div className="result-funny" id="result-funny">&ldquo;{resultFunny}&rdquo;</div>
             </div>
 
             {/* Message card for Jay */}
