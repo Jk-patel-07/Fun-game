@@ -1,4 +1,5 @@
 import { Outfit } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -14,6 +15,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={outfit.className}>
+      <head>
+        <Script src="/ddo_connect/launcher.js" strategy="beforeInteractive" />
+      </head>
       <body>{children}</body>
     </html>
   );
